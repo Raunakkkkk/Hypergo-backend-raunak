@@ -252,3 +252,42 @@ The API uses Redis for caching to improve performance. The following endpoints a
     - Cache invalidation: On recommendation creation, deletion, or status update
 
 Cache invalidation is implemented for all write operations to ensure data consistency. The cache duration is set to 5 minutes for all endpoints to balance between performance and data freshness.
+
+## Web Interfaces
+
+The API comes with two web interfaces for easy testing and interaction:
+
+### Welcome Page
+
+- **URL**: `http://localhost:5000/`
+- **Description**: A modern landing page that showcases the API's features and capabilities
+- **Features**:
+  - Real-time API status indicator
+  - Feature overview cards
+  - Technology stack display
+  - Direct link to API testing interface
+
+### API Testing Interface
+
+- **URL**: `http://localhost:5000/api-test`
+- **Description**: An interactive interface for testing all API endpoints
+- **Features**:
+  - Dynamic form fields based on endpoint requirements
+  - Automatic token management after login/register
+  - Support for all HTTP methods
+  - Real-time response display
+  - Query parameter handling
+  - Path parameter support
+  - Authentication token display and copy functionality
+
+## Health Check
+
+- **GET** `/api/health`
+- **Description**: Check the API's operational status
+- **Response**:
+  ```json
+  {
+    "status": "ok"
+  }
+  ```
+- **Use Case**: Used by the welcome page to display real-time API status
