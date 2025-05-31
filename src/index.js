@@ -55,8 +55,13 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "welcome.html"));
 });
 
+// API Testing Interface route
+app.get("/api-test", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "api-test.html"));
+});
+
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
@@ -66,7 +71,31 @@ app.use("/api/properties", require("./routes/properties"));
 app.use("/api/favorites", require("./routes/favorites"));
 app.use("/api/recommendations", require("./routes/recommendations"));
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    status: "error",
+    message: "Something went wrong!",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  if (req.path.startsWith("/api")) {
+    res.status(404).json({
+      status: "error",
+      message: "API endpoint not found",
+    });
+  } else {
+    res.status(404).sendFile(path.join(__dirname, "public", "welcome.html"));
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Welcome page: http://localhost:${PORT}`);
+  console.log(`API Testing Interface: http://localhost:${PORT}/api-test`);
 });

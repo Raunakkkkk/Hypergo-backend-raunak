@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HyperGo API Testing</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+      }
+      .endpoint-tester {
+        margin: 20px 0;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      select,
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      button {
+        background-color: #3498db;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-right: 10px;
+      }
+      button:hover {
+        background-color: #2980b9;
+      }
+      #response {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #2c3e50;
+        color: #fff;
+        border-radius: 4px;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .nav {
+        margin-bottom: 20px;
+      }
+      .nav a {
+        color: #3498db;
+        text-decoration: none;
+        margin-right: 15px;
+      }
+      .nav a:hover {
+        text-decoration: underline;
+      }
+      .endpoint-info {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #e8f4f8;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      .required {
+        color: #e74c3c;
+      }
+      .token-display {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #2c3e50;
+        color: #fff;
+        border-radius: 4px;
+        word-break: break-all;
+      }
+      .token-actions {
+        margin-top: 10px;
+      }
+      .copy-btn {
+        background-color: #27ae60;
+      }
+      .copy-btn:hover {
+        background-color: #219a52;
+      }
+      .dynamic-fields {
+        margin-top: 15px;
+      }
+      .field-group {
+        margin-bottom: 10px;
+      }
+      .field-group label {
+        display: inline-block;
+        width: 150px;
+      }
+      .field-group input {
+        width: calc(100% - 160px);
+        display: inline-block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="nav">
+        <a href="/">← Back to Home</a>
+      </div>
+      <h1>API Testing Interface</h1>
+
+      <div class="endpoint-tester">
+        <div class="form-group">
+          <label for="endpoint">Select Endpoint:</label>
+          <select id="endpoint" onchange="updateEndpointInfo()">
+            <!-- Auth Endpoints -->
+            <optgroup label="Authentication">
+              <option value="POST /api/auth/register">
+                POST /api/auth/register
+              </option>
+              <option value="POST /api/auth/login">POST /api/auth/login</option>
+            </optgroup>
+
+            <!-- Property Endpoints -->
+            <optgroup label="Properties">
+              <option value="GET /api/properties">GET /api/properties</option>
+              <option value="GET /api/properties/:id">
+                GET /api/properties/:id
+              </option>
+              <option value="POST /api/properties">POST /api/properties</option>
+              <option value="PUT /api/properties/:id">
+                PUT /api/properties/:id
+              </option>
+              <option value="DELETE /api/properties/:id">
+                DELETE /api/properties/:id
+              </option>
+            </optgroup>
+
+            <!-- Favorites Endpoints -->
+            <optgroup label="Favorites">
+              <option value="GET /api/favorites">GET /api/favorites</option>
+              <option value="POST /api/favorites/:propertyId">
+                POST /api/favorites/:propertyId
+              </option>
+              <option value="DELETE /api/favorites/:propertyId">
+                DELETE /api/favorites/:propertyId
+              </option>
+              <option value="GET /api/favorites/check/:propertyId">
+                GET /api/favorites/check/:propertyId
+              </option>
+            </optgroup>
+
+            <!-- Recommendations Endpoints -->
+            <optgroup label="Recommendations">
+              <option value="GET /api/recommendations/search-user">
+                GET /api/recommendations/search-user
+              </option>
+              <option value="POST /api/recommendations/:propertyId">
+                POST /api/recommendations/:propertyId
+              </option>
+              <option value="GET /api/recommendations/sent">
+                GET /api/recommendations/sent
+              </option>
+              <option value="GET /api/recommendations/received">
+                GET /api/recommendations/received
+              </option>
+              <option value="PATCH /api/recommendations/:recommendationId/view">
+                PATCH /api/recommendations/:recommendationId/view
+              </option>
+              <option value="DELETE /api/recommendations/:recommendationId">
+                DELETE /api/recommendations/:recommendationId
+              </option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div id="endpointInfo" class="endpoint-info">
+          <!-- Endpoint information will be displayed here -->
+        </div>
+
+        <div id="dynamicFields" class="dynamic-fields">
+          <!-- Dynamic form fields will be added here -->
+        </div>
+
+        <div id="tokenDisplay" style="display: none">
+          <h3>Your Authentication Token:</h3>
+          <div class="token-display" id="tokenValue"></div>
+          <div class="token-actions">
+            <button class="copy-btn" onclick="copyToken()">Copy Token</button>
+          </div>
+        </div>
+
+        <button onclick="testEndpoint()">Test Endpoint</button>
+
+        <div id="response">Response will appear here...</div>
+      </div>
+    </div>
+
+    <script>
+      let currentToken = "";
+
+      const endpointInfo = {
+        "POST /api/auth/register": {
+          description: "Register a new user",
+          fields: [
+            { name: "name", type: "text", label: "Name", required: true },
+            { name: "email", type: "email", label: "Email", required: true },
+            {
+              name: "password",
+              type: "password",
+              label: "Password",
+              required: true,
+            },
+          ],
+          auth: false,
+        },
+        "POST /api/auth/login": {
+          description: "Login user",
+          fields: [
+            { name: "email", type: "email", label: "Email", required: true },
+            {
+              name: "password",
+              type: "password",
+              label: "Password",
+              required: true,
+            },
+          ],
+          auth: false,
+        },
+        "GET /api/properties": {
+          description: "Get all properties with advanced filtering",
+          fields: [
+            {
+              name: "type",
+              type: "select",
+              label: "Property Type",
+              options: ["Bungalow", "Apartment", "Villa", "House", "Plot"],
+            },
+            { name: "minPrice", type: "number", label: "Min Price" },
+            { name: "maxPrice", type: "number", label: "Max Price" },
+            { name: "state", type: "text", label: "State" },
+            { name: "city", type: "text", label: "City" },
+            { name: "minArea", type: "number", label: "Min Area" },
+            { name: "maxArea", type: "number", label: "Max Area" },
+            { name: "bedrooms", type: "number", label: "Bedrooms" },
+            { name: "bathrooms", type: "number", label: "Bathrooms" },
+            {
+              name: "furnished",
+              type: "select",
+              label: "Furnished",
+              options: ["Furnished", "Unfurnished", "Semi-Furnished"],
+            },
+            {
+              name: "amenities",
+              type: "text",
+              label: "Amenities (pipe-separated)",
+            },
+            {
+              name: "listingType",
+              type: "select",
+              label: "Listing Type",
+              options: ["rent", "sale"],
+            },
+            { name: "sortBy", type: "text", label: "Sort By" },
+            {
+              name: "sortOrder",
+              type: "select",
+              label: "Sort Order",
+              options: ["asc", "desc"],
+            },
+            { name: "page", type: "number", label: "Page" },
+            { name: "limit", type: "number", label: "Limit" },
+          ],
+          auth: false,
+        },
+        "GET /api/properties/:id": {
+          description: "Get property by ID",
+          fields: [
+            { name: "id", type: "text", label: "Property ID", required: true },
+          ],
+          auth: false,
+        },
+        "POST /api/properties": {
+          description: "Create new property",
+          fields: [
+            { name: "title", type: "text", label: "Title", required: true },
+            {
+              name: "type",
+              type: "select",
+              label: "Type",
+              options: ["Bungalow", "Apartment", "Villa", "House", "Plot"],
+              required: true,
+            },
+            { name: "price", type: "number", label: "Price", required: true },
+            { name: "state", type: "text", label: "State", required: true },
+            { name: "city", type: "text", label: "City", required: true },
+            {
+              name: "areaSqFt",
+              type: "number",
+              label: "Area (sq ft)",
+              required: true,
+            },
+            {
+              name: "bedrooms",
+              type: "number",
+              label: "Bedrooms",
+              required: true,
+            },
+            {
+              name: "bathrooms",
+              type: "number",
+              label: "Bathrooms",
+              required: true,
+            },
+            {
+              name: "amenities",
+              type: "text",
+              label: "Amenities",
+              required: true,
+            },
+            {
+              name: "furnished",
+              type: "select",
+              label: "Furnished",
+              options: ["Furnished", "Unfurnished", "Semi-Furnished"],
+              required: true,
+            },
+            { name: "availableFrom", type: "date", label: "Available From" },
+            {
+              name: "listedBy",
+              type: "text",
+              label: "Listed By",
+              required: true,
+            },
+            { name: "tags", type: "text", label: "Tags", required: true },
+            { name: "colorTheme", type: "color", label: "Color Theme" },
+            {
+              name: "rating",
+              type: "number",
+              label: "Rating (0-5)",
+              min: 0,
+              max: 5,
+            },
+            {
+              name: "listingType",
+              type: "select",
+              label: "Listing Type",
+              options: ["rent", "sale"],
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "PUT /api/properties/:id": {
+          description: "Update property",
+          fields: [
+            { name: "title", type: "text", label: "Title", required: true },
+            {
+              name: "type",
+              type: "select",
+              label: "Type",
+              options: ["Bungalow", "Apartment", "Villa", "House", "Plot"],
+              required: true,
+            },
+            { name: "price", type: "number", label: "Price", required: true },
+            { name: "state", type: "text", label: "State", required: true },
+            { name: "city", type: "text", label: "City", required: true },
+            {
+              name: "areaSqFt",
+              type: "number",
+              label: "Area (sq ft)",
+              required: true,
+            },
+            {
+              name: "bedrooms",
+              type: "number",
+              label: "Bedrooms",
+              required: true,
+            },
+            {
+              name: "bathrooms",
+              type: "number",
+              label: "Bathrooms",
+              required: true,
+            },
+            {
+              name: "amenities",
+              type: "text",
+              label: "Amenities",
+              required: true,
+            },
+            {
+              name: "furnished",
+              type: "select",
+              label: "Furnished",
+              options: ["Furnished", "Unfurnished", "Semi-Furnished"],
+              required: true,
+            },
+            { name: "availableFrom", type: "date", label: "Available From" },
+            {
+              name: "listedBy",
+              type: "text",
+              label: "Listed By",
+              required: true,
+            },
+            { name: "tags", type: "text", label: "Tags", required: true },
+            { name: "colorTheme", type: "color", label: "Color Theme" },
+            {
+              name: "rating",
+              type: "number",
+              label: "Rating (0-5)",
+              min: 0,
+              max: 5,
+            },
+            {
+              name: "listingType",
+              type: "select",
+              label: "Listing Type",
+              options: ["rent", "sale"],
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "DELETE /api/properties/:id": {
+          description: "Delete property",
+          fields: [
+            { name: "id", type: "text", label: "Property ID", required: true },
+          ],
+          auth: true,
+        },
+        "GET /api/favorites": {
+          description: "Get user's favorite properties",
+          auth: true,
+        },
+        "POST /api/favorites/:propertyId": {
+          description: "Add property to favorites",
+          fields: [
+            {
+              name: "propertyId",
+              type: "text",
+              label: "Property ID",
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "DELETE /api/favorites/:propertyId": {
+          description: "Remove property from favorites",
+          fields: [
+            {
+              name: "propertyId",
+              type: "text",
+              label: "Property ID",
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "GET /api/favorites/check/:propertyId": {
+          description: "Check if property is in favorites",
+          fields: [
+            {
+              name: "propertyId",
+              type: "text",
+              label: "Property ID",
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "GET /api/recommendations/search-user": {
+          description: "Search users by email",
+          fields: [
+            { name: "email", type: "email", label: "Email", required: true },
+          ],
+          auth: true,
+        },
+        "POST /api/recommendations/:propertyId": {
+          description: "Recommend a property to a user",
+          fields: [
+            {
+              name: "recipientEmail",
+              type: "email",
+              label: "Recipient Email",
+              required: true,
+            },
+            {
+              name: "message",
+              type: "textarea",
+              label: "Message",
+              required: false,
+            },
+            {
+              name: "propertyId",
+              type: "text",
+              label: "Property ID",
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "GET /api/recommendations/sent": {
+          description: "Get recommendations sent by the current user",
+          auth: true,
+        },
+        "GET /api/recommendations/received": {
+          description: "Get recommendations received by the current user",
+          auth: true,
+        },
+        "PATCH /api/recommendations/:recommendationId/view": {
+          description: "Mark a recommendation as viewed",
+          fields: [
+            {
+              name: "recommendationId",
+              type: "text",
+              label: "Recommendation ID",
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+        "DELETE /api/recommendations/:recommendationId": {
+          description: "Delete a recommendation",
+          fields: [
+            {
+              name: "recommendationId",
+              type: "text",
+              label: "Recommendation ID",
+              required: true,
+            },
+          ],
+          auth: true,
+        },
+      };
+
+      function updateEndpointInfo() {
+        const endpoint = document.getElementById("endpoint").value;
+        const info = endpointInfo[endpoint];
+        const infoDiv = document.getElementById("endpointInfo");
+        const dynamicFieldsDiv = document.getElementById("dynamicFields");
+
+        // Update endpoint info
+        let html = `<strong>${info.description}</strong><br>`;
+        html += `<br><strong>Authentication Required:</strong> ${
+          info.auth ? "Yes" : "No"
+        }`;
+        infoDiv.innerHTML = html;
+
+        // Update dynamic fields
+        dynamicFieldsDiv.innerHTML = "";
+        if (info.fields) {
+          info.fields.forEach((field) => {
+            const fieldGroup = document.createElement("div");
+            fieldGroup.className = "field-group";
+
+            const label = document.createElement("label");
+            label.htmlFor = field.name;
+            label.textContent = field.label + (field.required ? " *" : "");
+
+            let input;
+            if (field.type === "select") {
+              input = document.createElement("select");
+              field.options.forEach((option) => {
+                const opt = document.createElement("option");
+                opt.value = option;
+                opt.textContent = option;
+                input.appendChild(opt);
+              });
+            } else {
+              input = document.createElement("input");
+              input.type = field.type;
+              if (field.min !== undefined) input.min = field.min;
+              if (field.max !== undefined) input.max = field.max;
+            }
+
+            input.id = field.name;
+            input.name = field.name;
+            if (field.required) input.required = true;
+
+            fieldGroup.appendChild(label);
+            fieldGroup.appendChild(input);
+            dynamicFieldsDiv.appendChild(fieldGroup);
+          });
+        }
+      }
+
+      function copyToken() {
+        const tokenValue = document.getElementById("tokenValue").textContent;
+        navigator.clipboard.writeText(tokenValue).then(() => {
+          alert("Token copied to clipboard!");
+        });
+      }
+
+      async function testEndpoint() {
+        const endpoint = document.getElementById("endpoint").value;
+        const info = endpointInfo[endpoint];
+        const responseDiv = document.getElementById("response");
+        const tokenDisplay = document.getElementById("tokenDisplay");
+
+        try {
+          const [method, path] = endpoint.split(" ");
+          let url = path;
+          const formData = {};
+
+          // Collect form data
+          if (info.fields) {
+            info.fields.forEach((field) => {
+              const input = document.getElementById(field.name);
+              if (input && input.value) {
+                formData[field.name] = input.value;
+              }
+            });
+          }
+
+          // Handle path parameters
+          if (formData.id) {
+            url = url.replace(":id", formData.id);
+            delete formData.id;
+          }
+          if (formData.propertyId) {
+            url = url.replace(":propertyId", formData.propertyId);
+            delete formData.propertyId;
+          }
+          if (formData.recommendationId) {
+            url = url.replace(":recommendationId", formData.recommendationId);
+            delete formData.recommendationId;
+          }
+
+          // Build query string for GET requests
+          if (method === "GET" && Object.keys(formData).length > 0) {
+            const params = new URLSearchParams();
+            for (const [key, value] of Object.entries(formData)) {
+              if (value) params.append(key, value);
+            }
+            url += "?" + params.toString();
+          }
+
+          const headers = {
+            "Content-Type": "application/json",
+          };
+
+          if (info.auth && currentToken) {
+            headers["Authorization"] = `Bearer ${currentToken}`;
+          }
+
+          const options = {
+            method,
+            headers,
+          };
+
+          if (
+            (method === "POST" || method === "PUT" || method === "PATCH") &&
+            Object.keys(formData).length > 0
+          ) {
+            options.body = JSON.stringify(formData);
+          }
+
+          responseDiv.textContent = "Loading...";
+          const response = await fetch(url, options);
+          const data = await response.json();
+
+          // Handle login/register response
+          if (
+            (endpoint === "POST /api/auth/login" ||
+              endpoint === "POST /api/auth/register") &&
+            data.token
+          ) {
+            currentToken = data.token;
+            document.getElementById("tokenValue").textContent = data.token;
+            tokenDisplay.style.display = "block";
+          }
+
+          responseDiv.textContent = JSON.stringify(data, null, 2);
+        } catch (error) {
+          responseDiv.textContent = `Error: ${error.message}`;
+        }
+      }
+
+      // Initialize endpoint info on page load
+      updateEndpointInfo();
+    </script>
+  </body>
+</html>
