@@ -191,15 +191,20 @@ All endpoints may return the following error responses:
 
 The API implements rate limiting to prevent abuse. The current limits are:
 
-- 100 requests per 15 minutes for authenticated users
-- 50 requests per 15 minutes for unauthenticated users
+- 100 requests per 15 minutes for authenticated routes:
+  - `/api/auth/*`
+  - `/api/favorites/*`
+  - `/api/recommendations/*`
+- 50 requests per 15 minutes for public routes:
+  - `/api/properties/*`
 
 ## Caching
 
 The API uses Redis for caching to improve performance. The following endpoints are cached:
 
-- Property listings
-- Individual property details
-- User favorites
+- Property listings (GET `/api/properties`)
+  - Cache duration: 5 minutes
+  - Cache key: Based on query parameters
+  - Cache invalidation: On property creation, update, or deletion
 
-Cache duration is set to 1 hour by default.
+Cache invalidation is implemented for all write operations to ensure data consistency.

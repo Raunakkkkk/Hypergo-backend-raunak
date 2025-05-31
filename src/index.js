@@ -4,13 +4,33 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const morgan = require("morgan");
 const Redis = require("redis");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
+
+// Rate limiting middleware
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
+
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // limit each IP to 50 requests per windowMs
+  message: "Too many requests from this IP, please try again after 15 minutes",
+});
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+
+// Apply rate limiting to routes
+app.use("/api/auth", authLimiter);
+app.use("/api/properties", publicLimiter);
+app.use("/api/favorites", authLimiter);
+app.use("/api/recommendations", authLimiter);
 
 // Redis client setup
 const redisClient = Redis.createClient({
