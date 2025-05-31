@@ -5,6 +5,7 @@ const cors = require("cors");
 const morgan = require("morgan");
 const Redis = require("redis");
 const rateLimit = require("express-rate-limit");
+const path = require("path");
 
 const app = express();
 
@@ -26,6 +27,9 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, "public")));
+
 // Apply rate limiting to routes
 app.use("/api/auth", authLimiter);
 app.use("/api/properties", publicLimiter);
@@ -45,6 +49,16 @@ mongoose
   .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/hypergo")
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// Welcome page route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "welcome.html"));
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
 // Routes
 app.use("/api/auth", require("./routes/auth"));
