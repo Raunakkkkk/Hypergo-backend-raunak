@@ -5,6 +5,12 @@ const Recommendation = require("../models/Recommendation");
 const Property = require("../models/Property");
 const User = require("../models/User");
 const auth = require("../middleware/auth");
+const redisClient = require("../config/redis");
+
+// Helper function to generate cache key
+const generateCacheKey = (userId, type) => {
+  return `recommendations:${type}:${userId}`;
+};
 
 // Search for a user by email
 router.get("/search-user", auth, async (req, res) => {
@@ -90,6 +96,10 @@ router.post(
 
       await recommendation.save();
 
+      // Invalidate cache for both sender and recipient
+      await redisClient.del(generateCacheKey(req.user._id, "sent"));
+      await redisClient.del(generateCacheKey(recipient._id, "received"));
+
       res.status(201).json(recommendation);
     } catch (error) {
       if (error.code === 11000) {
@@ -105,6 +115,14 @@ router.post(
 // Get recommendations received by the current user
 router.get("/received", auth, async (req, res) => {
   try {
+    // Check cache
+    const cacheKey = generateCacheKey(req.user._id, "received");
+    const cachedData = await redisClient.get(cacheKey);
+
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
+
     const recommendations = await Recommendation.find({
       recipient: req.user._id,
     })
@@ -118,6 +136,9 @@ router.get("/received", auth, async (req, res) => {
       .populate("sender", "name email")
       .sort({ createdAt: -1 });
 
+    // Cache results for 5 minutes
+    await redisClient.set(cacheKey, JSON.stringify(recommendations), "EX", 300);
+
     res.json(recommendations);
   } catch (error) {
     res.status(500).json({ error: "Server error" });
@@ -127,6 +148,14 @@ router.get("/received", auth, async (req, res) => {
 // Get recommendations sent by the current user
 router.get("/sent", auth, async (req, res) => {
   try {
+    // Check cache
+    const cacheKey = generateCacheKey(req.user._id, "sent");
+    const cachedData = await redisClient.get(cacheKey);
+
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
+
     const recommendations = await Recommendation.find({ sender: req.user._id })
       .populate({
         path: "property",
@@ -137,6 +166,9 @@ router.get("/sent", auth, async (req, res) => {
       })
       .populate("recipient", "name email")
       .sort({ createdAt: -1 });
+
+    // Cache results for 5 minutes
+    await redisClient.set(cacheKey, JSON.stringify(recommendations), "EX", 300);
 
     res.json(recommendations);
   } catch (error) {
@@ -159,6 +191,9 @@ router.patch("/:recommendationId/view", auth, async (req, res) => {
     recommendation.status = "viewed";
     await recommendation.save();
 
+    // Invalidate cache for recipient
+    await redisClient.del(generateCacheKey(req.user._id, "received"));
+
     res.json(recommendation);
   } catch (error) {
     res.status(500).json({ error: "Server error" });
@@ -178,6 +213,13 @@ router.delete("/:recommendationId", auth, async (req, res) => {
     }
 
     await recommendation.deleteOne();
+
+    // Invalidate cache for both sender and recipient
+    await redisClient.del(generateCacheKey(req.user._id, "sent"));
+    await redisClient.del(
+      generateCacheKey(recommendation.recipient, "received")
+    );
+
     res.json({ message: "Recommendation deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Server error" });

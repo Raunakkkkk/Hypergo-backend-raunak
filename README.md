@@ -219,8 +219,36 @@ The API implements rate limiting to prevent abuse. The current limits are:
 The API uses Redis for caching to improve performance. The following endpoints are cached:
 
 - Property listings (GET `/api/properties`)
+
   - Cache duration: 5 minutes
   - Cache key: Based on query parameters
   - Cache invalidation: On property creation, update, or deletion
 
-Cache invalidation is implemented for all write operations to ensure data consistency.
+- Property details (GET `/api/properties/:id`)
+
+  - Cache duration: 5 minutes
+  - Cache key: Based on property ID
+  - Cache invalidation: On property update or deletion
+
+- Favorites
+
+  - GET `/api/favorites`
+    - Cache duration: 5 minutes
+    - Cache key: Based on user ID
+    - Cache invalidation: On adding or removing favorites
+  - GET `/api/favorites/check/:propertyId`
+    - Cache duration: 5 minutes
+    - Cache key: Based on user ID and property ID
+    - Cache invalidation: On adding or removing the specific property from favorites
+
+- Recommendations
+  - GET `/api/recommendations/sent`
+    - Cache duration: 5 minutes
+    - Cache key: Based on user ID
+    - Cache invalidation: On recommendation creation, deletion, or status update
+  - GET `/api/recommendations/received`
+    - Cache duration: 5 minutes
+    - Cache key: Based on user ID
+    - Cache invalidation: On recommendation creation, deletion, or status update
+
+Cache invalidation is implemented for all write operations to ensure data consistency. The cache duration is set to 5 minutes for all endpoints to balance between performance and data freshness.
